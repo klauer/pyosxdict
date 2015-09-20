@@ -13,6 +13,7 @@ import six
 import lxml.html
 
 from . import structs
+from .trie import Trie
 
 
 if not six.PY3:
@@ -74,7 +75,7 @@ class DictionaryBody(object):
     @property
     def filename(self):
         '''The full path and filename to the text'''
-        return os.path.join(path, self._fn)
+        return os.path.join(self._path, self._fn)
 
     def close(self):
         '''Close the file'''
@@ -255,8 +256,11 @@ class DictionaryBody(object):
         if self._index is not None:
             return
 
-        self._index = collections.OrderedDict()
+        self._index = trie = Trie()
         title_tag = '{}="'.format(self._title_tag)
+
+        last_entry = None
+        last_title = None
         for block, offset, block_text in self.read_all_entries():
             try:
                 tag_pos = block_text.index(title_tag) + len(title_tag)
@@ -271,14 +275,14 @@ class DictionaryBody(object):
             title = title[:title.index('"')]
             if title:
                 b_o = BlockOffset(block, offset)
-                try:
-                    index = self._index[title]
-                except KeyError:
-                    index = self._index[title] = []
-
-                index.append(b_o)
+                if title == last_title:
+                    last_entry.append(b_o)
+                else:
+                    last_title = title
+                    trie[title] = last_entry = [b_o]
 
         logger.debug('Total index entries %d', len(self._index))
+        print('Total index entries %d', len(self._index))
 
     def __getitem__(self, word):
         '''Read an entry from the dictionary by word'''
@@ -310,7 +314,7 @@ class DictionaryBodyHTML(DictionaryBody):
 
     def interpret_text(self, entry_text):
         html = lxml.html.fromstring(entry_text)
-        # return html.get('d:title', None), html
+        # title = html['d:title']
         return html
 
 
@@ -356,11 +360,11 @@ class Dictionary(object):
         return self.body[word]
 
 
-if __name__ == '__main__':
+def _test():
     logging.basicConfig()
     # logger.setLevel(logging.DEBUG)
-    # dict_name = 'Sanseido Super Daijirin'
-    dict_name = 'Oxford Dictionary of English'
+    dict_name = 'Sanseido Super Daijirin'
+    # dict_name = 'Oxford Dictionary of English'
 
     path = "/Library/Dictionaries/{}.dictionary/Contents/".format(dict_name)
 
@@ -377,7 +381,15 @@ if __name__ == '__main__':
         break
 
     print('getitem "a":', dc[u'a'])
+    print('number of "a" entries:', len(dc[u'a']))
     try:
-        print('getitem "あ":', dc[u'あ'])
+        print(u'getitem "あ":', dc[u'あ'])
+        print(u'number of "あ" entries:', len(dc[u'あ']))
     except KeyError:
         pass
+
+    return dc
+
+
+if __name__ == '__main__':
+    dc = _test()
