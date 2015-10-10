@@ -74,7 +74,7 @@ class DictionaryBody(object):
     @property
     def filename(self):
         '''The full path and filename to the text'''
-        return os.path.join(path, self._fn)
+        return os.path.join(self._path, self._fn)
 
     def close(self):
         '''Close the file'''
@@ -356,7 +356,7 @@ class Dictionary(object):
         return self.body[word]
 
 
-if __name__ == '__main__':
+def _test():
     logging.basicConfig()
     # logger.setLevel(logging.DEBUG)
     # dict_name = 'Sanseido Super Daijirin'
@@ -381,3 +381,9 @@ if __name__ == '__main__':
         print('getitem "あ":', dc[u'あ'])
     except KeyError:
         pass
+
+    return dc
+
+
+if __name__ == '__main__':
+    dc = _test()
